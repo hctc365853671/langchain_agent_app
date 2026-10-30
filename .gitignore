@@ -1,0 +1,60 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# 环境变量密钥（重点！不要把api密钥提交上去）
+.env
+.env.local
+
+# Streamlit 缓存、日志
+.streamlit/
+.streamlit/cache/
+.streamlit/logs/
+
+# Chroma向量库持久化目录（非常重要，chroma数据库很大，不要提交）
+chroma_db/
+chroma/
+
+# 上传文件目录（你前面的 ./upload 文件夹）
+upload/
+
+# 日志文件
+*.log
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 打包exe临时文件
+*.spec
