@@ -8,8 +8,10 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Mirror to Gitee
-        uses: pixta-dev/repository-mirroring-action@v1
+      - name: Mirror repo to Gitee
+        uses: Yikun/hub-mirror-action@master
         with:
-          target_repo_url: git@gitee.com:hcccc111/langchain_agent_app.git
-          ssh_private_key: ${{ secrets.GITEE_RSA_PRIVATE_KEY }}
+          src: github/hctc365853671
+          dst: gitee/hcccc111
+          dst_key: ${{ secrets.GITEE_RSA_PRIVATE_KEY }}
+          dst_repo: langchain_agent_app
