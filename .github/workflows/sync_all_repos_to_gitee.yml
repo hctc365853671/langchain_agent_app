@@ -1,0 +1,16 @@
+name: Sync All Repos to Gitee
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror all repos
+        uses: Yikun/hub-mirror-action@master
+        with:
+          src: github/hctc365853671
+          dst: gitee/hcccc111
+          dst_key: ${{ secrets.GITEE_RSA_PRIVATE_KEY }}
+          dst_token: ${{ secrets.GITEE_TOKEN }}
