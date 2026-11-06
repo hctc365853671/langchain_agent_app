@@ -1,4 +1,4 @@
-name: Sync All Repos to Gitee
+name: Sync to Gitee SSH
 on:
   push:
   workflow_dispatch:
@@ -7,7 +7,9 @@ jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
-      - name: Mirror all repos
+      - name: wait for gitee repo ready
+        run: sleep 20
+      - name: mirror
         uses: Yikun/hub-mirror-action@master
         with:
           src: github/hctc365853671
