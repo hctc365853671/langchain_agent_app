@@ -1,18 +1,78 @@
-name: Sync to Gitee SSH
+name: Sync GitHub to Gitee
+
+# 只用 SSH 私钥直推，不依赖 Gitee API Token（没有建仓需求，token 过期也不会再挂）。
+# 前置：Gitee 账号 hcccclll 的 SSH 公钥已在 https://gitee.com/profile/sshkeys 配好，
+#       对应私钥放在仓库 secret：GITEE_PRIVATE_KEY（或沿用旧的 GITEE_RSA_PRIVATE_KEY）。
+
 on:
   push:
+    branches: [main, master]
+  schedule:
+    - cron: "0 */6 * * *"        # 每 6 小时兜底（cron 只认 UTC）
   workflow_dispatch:
+    inputs:
+      repos:
+        description: "逗号分隔的仓库名，留空则用默认四个"
+        required: false
+        default: ""
+
+concurrency:
+  group: gitee-mirror
+  cancel-in-progress: false
+
+env:
+  GH_USER: hctc365853671
+  GITEE_USER: hcccclll
+  DEFAULT_REPOS: "agent_app,langchain_agent_app,python-learning,rag_project"
 
 jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
-      - name: wait for gitee repo ready
-        run: sleep 20
-      - name: mirror
-        uses: Yikun/hub-mirror-action@master
-        with:
-          src: github/hctc365853671
-          dst: gitee/hcccc111
-          dst_key: ${{ secrets.GITEE_RSA_PRIVATE_KEY }}
-          dst_token: ${{ secrets.GITEE_TOKEN }}
+      - name: Prepare SSH key
+        env:
+          KEY: ${{ secrets.GITEE_PRIVATE_KEY || secrets.GITEE_RSA_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEY:-}" ]; then
+            echo "::error::没有可用的 Gitee 私钥：请配置 secret GITEE_PRIVATE_KEY（内容为私钥全文，含 BEGIN/END 行）"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/gitee_key
+          chmod 600 ~/.ssh/gitee_key
+          ssh-keyscan -H gitee.com >> ~/.ssh/known_hosts 2>/dev/null
+          cat > ~/.ssh/config <<'EOF'
+          Host gitee.com
+            IdentityFile ~/.ssh/gitee_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+          chmod 600 ~/.ssh/config
+          echo "--- gitee auth check ---"
+          ssh -T git@gitee.com || true
+
+      - name: Mirror repos
+        env:
+          LIST: ${{ github.event.inputs.repos }}
+        run: |
+          set -euo pipefail
+          REPOS="${LIST:-$DEFAULT_REPOS}"
+          echo "mirror list: $REPOS"
+          fail=0
+          IFS=',' read -ra ARR <<< "$REPOS"
+          for r in "${ARR[@]}"; do
+            r="$(echo "$r" | tr -d '[:space:]')"
+            [ -z "$r" ] && continue
+            echo "=== $r ==="
+            rm -rf "/tmp/$r.git"
+            git clone --mirror "https://github.com/$GH_USER/$r.git" "/tmp/$r.git"
+            if git -C "/tmp/$r.git" push --mirror "git@gitee.com:$GITEE_USER/$r.git"; then
+              echo "OK   $r  $(git -C "/tmp/$r.git" rev-parse refs/heads/main 2>/dev/null || echo no-main)"
+            else
+              echo "::error::push failed: $r"
+              fail=1
+            fi
+            rm -rf "/tmp/$r.git"
+          done
+          exit $fail
